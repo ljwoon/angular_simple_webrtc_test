@@ -1,1 +1,8 @@
-<p>meeting works!</p>
+<div #call id="call">
+    <div #local_video id="local_video" class="local_video">
+        <video #video autoplay="" muted="" [srcObject]="localStream$|async"></video>
+    </div>
+    <div #participants id="remote_video" class="remote_video">
+
+    </div>
+</div>

@@ -7,7 +7,7 @@ const https = require('https');
 const cors = require('cors');
 const app = express();
 
-var port = normalizePort(process.env.port || '3300');
+var port = normalizePort(process.env.port || '3500');
 app.set('port', port);
 
 app.use(cors());
@@ -73,7 +73,9 @@ const httpsServer = https.createServer(options, app).listen(app.get('port'), () 
     // mongApp.appSetObjectId(app);
 });
 
-const wsServer = SocketIO(httpsServer);
+const wsServer = SocketIO(httpsServer,{
+        path: '/socketWebRTC'
+    });
 
 
 function normalizePort(val) {
@@ -128,7 +130,7 @@ const sharing = require('./controllers/webRTC/socketHandler-sharing.js')
 
 socketWebRTC.on('connection', (socket) => {
     sharing(wsServer, socket, app )
-    drawing(wsServer, socket, app)
+    // drawing(wsServer, socket, app)
 });
 
 

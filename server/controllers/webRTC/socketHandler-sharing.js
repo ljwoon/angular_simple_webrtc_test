@@ -8,16 +8,14 @@ let userRegister = new Register;
 
 const argv = minimst(process.argv.slice(2), {
   default: {
-      as_uri: 'http://54.180.58.25:3000',
-      ws_uri: 'ws://54.180.58.25:8888/kurento'
+      as_uri: 'http://15.165.65.162:3000',
+      ws_uri: 'ws://15.165.65.162:8888/kurento'
   }
 });
 
-var sessions = {};
-var candidatesQueue = {};
 
-var username;
-var roomname;
+var participant_name;
+var room_name;
 var bandwidth;
 
 let meeting_disconnect = null;
@@ -36,29 +34,30 @@ module.exports = function (wsServer, socket, app) {
   // 룸에 참가.
   socket.on('userInfo', (data) => {
     console.log('[data]', data)
-    roomname = data.roomName;
-    username = data.userName;
-    console.log('roomName : ' + roomname)
-    console.log('userName : ' + username)
+    room_name = data.room_name;
+    participant_name = data.participant_name;
+    data = {
+      room_name,
+      participant_name
+    }
+    console.log('room_name : ' + room_name)
+    console.log('participant_name : ' + participant_name)
     bandwidth = 100;
     console.log('bandwidth : ' + bandwidth)
-    // RoomList(data);
-    socket.join(roomname);
-    socket.username = username;
+    // 소켓 룸 설정
+    socket.join(room_name);
+    // socket.변수는 소켓에 같이 보내고 싶은 변수(정보)를 담을 수 있다.
+    socket.participant_name = participant_name;
 
-    // RoomNumClient[roomname] += 1;
-    // const index = Rooms.findIndex(obj => obj.meeting_name == roomname);
-    // Rooms[index].meeting_num = RoomNumClient[roomname];
-
-    // let meeting_num = Rooms[index].meeting_num;
-    // wsServer.to(roomname).emit("meeting_num", meeting_num);
-
-    joinRoom(socket, roomname, err => {
+    
+    // 룸 참가 함수 실행 
+    joinRoom(socket, room_name, err => {
       if (err) {
         console.error('join Room error ' + err);
       }
     });
 
+    socketWebRTC.to(socket.id).emit('myUserInfo', data)
     socketWebRTC.emit("roomList_change", Rooms);
 
   });
@@ -74,6 +73,8 @@ module.exports = function (wsServer, socket, app) {
 
 
   socket.on("receiveVideoFrom", (data) => {
+    console.log('data.sender---------------------------------')
+    console.log(data.sender)
     receiveVideoFrom(socket, data.sender, data.sdpOffer, (error) => {
       if (error) {
         console.error(error);
@@ -95,7 +96,7 @@ module.exports = function (wsServer, socket, app) {
   });
 
   socket.on("leaveRoom", (data) => {
-    socket.leave(data.roomname);
+    socket.leave(data.room_name);
     leaveRoom(socket, data, err => {
       if (err) {
         console.error('leave Room error ' + err);
@@ -104,8 +105,8 @@ module.exports = function (wsServer, socket, app) {
 
   });
   socket.on("change bitrate", (room) => {
-    roomname = room.roomname;
-    username = socket.username;
+    room_name = room.room_name;
+    participant_name = socket.participant_name;
     bandwidth = room.bitrate;
 
     let userSession = userRegister.getById(socket.id);
@@ -117,18 +118,18 @@ module.exports = function (wsServer, socket, app) {
   socket.on("disconnecting", () => {
     let userSession = userRegister.getById(socket.id);
     if (userSession != undefined) {
-      if (userSession.roomName != undefined) {
+      if (userSession.room_name != undefined) {
         meeting_disconnect = "disconnect during a meeting";
-        roomname = userSession.roomName;
-        username = socket.username;
+        room_name = userSession.room_name;
+        participant_name = socket.participant_name;
       }
     }
   });
   socket.on("disconnect", () => {
     if (meeting_disconnect != null) {
       var data = {
-        username: username,
-        roomname: roomname,
+        participant_name: participant_name,
+        room_name: room_name,
       }
       leaveRoom(socket, data, err => {
         if (err) {
@@ -147,7 +148,7 @@ let rooms = {};
 function renegotiation(socket) {
   let userSession = userRegister.getById(socket.id);
 
-  var room = rooms[userSession.roomName];
+  var room = rooms[userSession.room_name];
 
   var usersInRoom = room.participants;
 
@@ -245,18 +246,18 @@ function RoomList(data) {
 
 function leaveRoom(socket, data, callback) {
   isHangup = true;
-  HangUp_user = data.username;
-  roomname = data.roomname;
-  // RoomNumClient[roomname] -= 1;
+  HangUp_user = data.participant_name;
+  room_name = data.room_name;
+  // RoomNumClient[room_name] -= 1;
 
-  // const index = Rooms.findIndex(obj => obj.meeting_name == roomname);
-  // Rooms[index].meeting_num = RoomNumClient[roomname];
+  // const index = Rooms.findIndex(obj => obj.meeting_name == room_name);
+  // Rooms[index].meeting_num = RoomNumClient[room_name];
 
   // wsServer.emit("roomList_change", Rooms);
 
   // let meeting_num = Rooms[index].meeting_num;
 
-  // wsServer.to(roomname).emit("meeting_num", meeting_num);
+  // wsServer.to(room_name).emit("meeting_num", meeting_num);
 
 
   let userSession = userRegister.getById(socket.id);
@@ -265,13 +266,13 @@ function leaveRoom(socket, data, callback) {
     return;
   }
 
-  var room = rooms[userSession.roomName];
+  var room = rooms[userSession.room_name];
 
   if (!room) {
     return;
   }
 
-  console.log('notify all user that ' + userSession.name + ' is leaving the room ' + roomname);
+  console.log('notify all user that ' + userSession.name + ' is leaving the room ' + room_name);
 
   var usersInRoom = room.participants;
   delete usersInRoom[userSession.name];
@@ -298,24 +299,23 @@ function leaveRoom(socket, data, callback) {
   // Release pipeline and delete room when room is empty
   if (Object.keys(room.participants).length == 0) {
     room.pipeline.release();
-    delete rooms[userSession.roomName];
+    delete rooms[userSession.room_name];
   }
-  delete userSession.roomName;
+  delete userSession.room_name;
 }
 
-function joinRoom(socket, roomName, callback) {
-
-  // get room 
-  getRoom(roomName, (error, room) => {
+// 룸 참가
+function joinRoom(socket, room_name, callback) {
+  // get room 룸정보 가져오기 
+  getRoom(room_name, (error, room) => {
     if (error) {
       console.log('error');
       callback(error);
       return;
     }
-    // join user to room
+    // join user to room 
     join(socket, room, (err, user) => {
-
-      console.log('join success : ' + socket.username);
+      console.log('join success : ' + socket.participant_name);
       if (err) {
         callback(err);
         return;
@@ -325,10 +325,10 @@ function joinRoom(socket, roomName, callback) {
   });
 }
 
-function getRoom(roomName, callback) {
-  let room = rooms[roomName];
+function getRoom(room_name, callback) {
+  let room = rooms[room_name];
   if (room == null) {
-    console.log('create new room : ' + roomName);
+    console.log('create new room : ' + room_name);
     getKurentoClient((error, kurentoClient) => {
       if (error) {
         return callback(error);
@@ -338,26 +338,29 @@ function getRoom(roomName, callback) {
           return callback(error);
         }
         room = {
-          name: roomName,
+          name: room_name,
           pipeline: pipeline,
           participants: {},
           kurentoClient: kurentoClient
         };
 
-        rooms[roomName] = room;
+        rooms[room_name] = room;
         callback(null, room);
       });
     });
 
   } else {
-    console.log('get existing room : ' + roomName);
+    console.log('get existing room : ' + room_name);
     callback(null, room);
   }
 }
 
+// 가져온 룸에 참가
 function join(socket, room, callback) {
-  let userName = socket.username;
-  let userSession = new Session(socket, userName, room.name);
+  let participant_name = socket.participant_name;
+  console.log(participant_name)
+  console.log(room.name)
+  let userSession = new Session(socket, participant_name, room.name);
   userRegister.register(userSession);
 
 
@@ -415,7 +418,7 @@ function join(socket, room, callback) {
     userSession.sendMessage({
       id: 'existingParticipants',
       data: existingUsers,
-      roomName: room.name
+      room_name: room.name
     });
 
     room.participants[userSession.name] = userSession;
@@ -428,7 +431,7 @@ function receiveVideoFrom(socket, senderName, sdpOffer, callback) {
 
   let userSession = userRegister.getById(socket.id);
   let sender = userRegister.getByName(senderName);
-
+  console.log('sender : ' + sender)
   getEndpointForUser(userSession, sender, (error, endpoint) => {
     if (error) {
       console.error(error);
@@ -491,7 +494,7 @@ function getEndpointForUser(userSession, sender, callback) {
   console.log(userSession.name + "    " + sender.name);
   if (incoming == null) {
     console.log(`user : ${userSession.id} create endpoint to receive video from : ${sender.id}`);
-    getRoom(userSession.roomName, (error, room) => {
+    getRoom(userSession.room_name, (error, room) => {
       if (error) {
         console.error(error);
         callback(error);

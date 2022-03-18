@@ -12,7 +12,7 @@ export class MeetingService {
 	) { }
 
 	join(data:any) {
-		return this.http.post('https://localhost:3300/api/v1/joinMeeting', data);
+		return this.http.post('/api/v1/joinMeeting', data);
 	}
 
 	
