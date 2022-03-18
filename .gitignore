@@ -1,0 +1,5 @@
+./client/node_modules
+./server/node_modules
+# ./server/private.pem
+# ./server/public.pem
+./server/.env
