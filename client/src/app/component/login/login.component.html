@@ -1,0 +1,10 @@
+<form [formGroup]="roomForm" (ngSubmit)="onSubmit()">
+
+    <label for="room">Room Name: </label>
+    <input id="room" type="text" formControlName="roomName"><br>
+  
+    <label for="participant">Participant Name: </label>
+    <input id="participant" type="text" formControlName="participantName"><br>
+    
+    <button type="submit" [disabled]="!roomForm.valid">Join</button>
+</form>
