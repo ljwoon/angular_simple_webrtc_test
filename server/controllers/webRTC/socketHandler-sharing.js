@@ -73,8 +73,6 @@ module.exports = function (wsServer, socket, app) {
 
 
   socket.on("receiveVideoFrom", (data) => {
-    console.log('data.sender---------------------------------')
-    console.log(data.sender)
     receiveVideoFrom(socket, data.sender, data.sdpOffer, (error) => {
       if (error) {
         console.error(error);
@@ -431,8 +429,10 @@ function receiveVideoFrom(socket, senderName, sdpOffer, callback) {
 
   let userSession = userRegister.getById(socket.id);
   let sender = userRegister.getByName(senderName);
-  console.log('sender : ' + sender)
+  // console.log(sender)
+  // console.log(sender.name)
   getEndpointForUser(userSession, sender, (error, endpoint) => {
+    
     if (error) {
       console.error(error);
       callback(error);
@@ -485,7 +485,6 @@ function addIceCandidate(socket, message, callback) {
   }
 }
 function getEndpointForUser(userSession, sender, callback) {
-
   if (userSession.name === sender.name) {
     return callback(null, userSession.outgoingMedia);
   }
@@ -494,7 +493,7 @@ function getEndpointForUser(userSession, sender, callback) {
   console.log(userSession.name + "    " + sender.name);
   if (incoming == null) {
     console.log(`user : ${userSession.id} create endpoint to receive video from : ${sender.id}`);
-    getRoom(userSession.room_name, (error, room) => {
+    getRoom(userSession.roomName, (error, room) => {
       if (error) {
         console.error(error);
         callback(error);

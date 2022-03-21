@@ -10,7 +10,7 @@ import { WebRtcPeer } from 'kurento-utils';
 export class MeetingComponent implements OnInit {
 
   private socket;
-  localStream$: any;
+  localStream$;
   participants: any = {};
   myName: string;
   muted = false;
@@ -36,12 +36,7 @@ export class MeetingComponent implements OnInit {
       this.myName = res.participant_name
     })
 
-    const options = {
-      audio: true,
-      video: true,
-    }
-
-    this.localStream$ = navigator.mediaDevices.getUserMedia(options)
+    
     this.registerSocketListener();
   }
   /**
@@ -67,25 +62,26 @@ export class MeetingComponent implements OnInit {
       console.log(data)
       this.receiveVideoResponse(data);
     });
-    // this.socket.on("iceCandidate", (data) => {
-    //   console.log(data)
-    //   this.participants[data.userId].rtcPeer.addIceCandidate(data.candidate, function (error) {
-    //     if (error) {
-    //       console.error("Error adding candidate: " + error);
-    //       return;
-    //     }
-    //   });
-    // });
+    this.socket.on("iceCandidate", (data) => {
+      console.log(data)
+      this.participants[data.name].rtcPeer.addIceCandidate(data.candidate, function (error) {
+        if (error) {
+          console.error("Error adding candidate: " + error);
+          return;
+        }
+      });
+    });
 
     this.socket.on("updateremoteVideo", (user) => {
-      var participant = this.participants[user.part];
+      var participant = this.participants[user.name];
       participant.dispose();
-      delete this.participants[user.userId];
+      delete this.participants[user.name];
     });
   }
 
   onNewParticipant(request) {
-		this.receiveVideo(request);
+    console.log(request)
+		this.receiveVideo(request.name);
   	}
 
   //https://github.com/peterkhang/ionic-demo/blob/a5dc3bef1067eb93c2070b4d8feb233ac6d3427a/src/app/pages/videoCall/video-call.page.ts#L169
@@ -94,6 +90,7 @@ export class MeetingComponent implements OnInit {
 
     var participant = new Participant(this.socketService, this.myName, this.myName, this.myName, this.participantsElement);
     this.participants[this.myName] = participant;
+    console.log(this.participants[this.myName])
 
     var video = participant.getVideoElement();
     console.log(video)
@@ -102,7 +99,9 @@ export class MeetingComponent implements OnInit {
       audio: true,
       video: true,
     }
-  
+    
+    this.localStream$ = await navigator.mediaDevices.getUserMedia(constraints)
+
     const options = {
       videoStream: this.localStream$,
       localVideo: video,
@@ -136,10 +135,12 @@ export class MeetingComponent implements OnInit {
   receiveVideo(sender) {
 		console.log(sender)
 
-		var participant = new Participant(this.socketService, this.myName, sender.name, sender.name, this.participantsElement);
-		this.participants[sender.name] = participant;
+		var participant = new Participant(this.socketService, this.myName, sender, sender, this.participantsElement);
+		this.participants[sender] = participant;
+    
 		var video = participant.getVideoElement();
-	
+    console.log(video)
+    console.log(participant)
 
 		var options = {
 			remoteVideo: video,
@@ -189,7 +190,7 @@ function checkClass(names) {
 }
 
 function Participant(socketService, userId, receiveUserid, userName, participants) {
-  console.log('userId = ', userId, 'receiveUserid = ', receiveUserid)
+  console.log('userId = ', userId, 'receiveUserid = ', receiveUserid, 'participants = ', participants)
   const socket = socketService.socket;
   participants_name.push(receiveUserid);
 
@@ -212,7 +213,7 @@ function Participant(socketService, userId, receiveUserid, userName, participant
   }
 
   participants.appendChild(container);
-  document.getElementById('remote_video').appendChild(container);
+  document.getElementById('participants').appendChild(container);
 
   p.appendChild(document.createTextNode(userName));
 
