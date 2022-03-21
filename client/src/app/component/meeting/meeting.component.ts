@@ -53,11 +53,11 @@ export class MeetingComponent implements OnInit {
     this.socket.on("newParticipantArrived", (data) => {
       this.onNewParticipant(data);
     });
-    // // 나중에 구현
-    // this.socket.on("participantLeft", (data) => {
-    //   console.log("participantLeft---------------", data)
-    //   this.onParticipantLeft(data);
-    // });
+    // 나중에 구현
+    this.socket.on("participantLeft", (data) => {
+      console.log("participantLeft---------------", data)
+      this.onParticipantLeft(data);
+    });
     this.socket.on("receiveVideoAnswer", (data) => {
       console.log(data)
       this.receiveVideoResponse(data);
@@ -78,6 +78,7 @@ export class MeetingComponent implements OnInit {
       delete this.participants[user.name];
     });
   }
+
 
   onNewParticipant(request) {
     console.log(request)
@@ -137,7 +138,7 @@ export class MeetingComponent implements OnInit {
 
 		var participant = new Participant(this.socketService, this.myName, sender, sender, this.participantsElement);
 		this.participants[sender] = participant;
-    
+
 		var video = participant.getVideoElement();
     console.log(video)
     console.log(participant)
@@ -169,6 +170,21 @@ export class MeetingComponent implements OnInit {
 		if (this.cameraOff) {
 			this.participants[result.name].rtcPeer.videoEnabled = false;
 		}
+	}
+
+  onParticipantLeft(request) {
+		console.log('Participant ' + request.name + ' left');
+		var participant = this.participants[request.name];
+
+		// var isExist = document.getElementById(request.name).className;
+		// var participantClass = new Participant(this.socketService, request.name, this.participantsElement)
+
+		const filterd = participants_name.filter((data) => data !== request.name)
+		participants_name = filterd;
+		participant.dispose();
+		delete this.participants[request.name];
+
+		console.log('Participant ' + request.name + ' left');
 	}
 
  

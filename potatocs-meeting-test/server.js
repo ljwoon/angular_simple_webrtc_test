@@ -25,7 +25,7 @@ const options = {
 
 
 // [API] Routers
-app.use('/api/v1', require('./routes/api/v1'));
+// app.use('/api/v1', require('./routes/api/v1'));
 
 
 
@@ -36,7 +36,7 @@ app.use('/api/v1', require('./routes/api/v1'));
   angnular 페이지가 작동된다. 
 */
 // static
-// app.use('/', express.static(path.join(__dirname, '/client')));
+app.use('/', express.static(path.join(__dirname, '/dist/webrtc')));
 
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "1";
@@ -74,7 +74,7 @@ const httpsServer = https.createServer(options, app).listen(app.get('port'), () 
 });
 
 const wsServer = SocketIO(httpsServer,{
-        path: '/socketWebRTC'
+        path: '/socketWebRTCTest'
     });
 
 
@@ -118,7 +118,7 @@ function RoomList(data) {
 /*---------------------------
 	Namespace
 ----------------------------*/
-const socketWebRTC = wsServer.of('/socketWebRTC');
+const socketWebRTC = wsServer.of('/socketWebRTCTest');
 
 
 
@@ -154,5 +154,5 @@ socketWebRTC.on('connection', (socket) => {
 //       Req: "${req.url}"
 //         => Redirect to 'index.html'
 //     ============================================`)
-//      res.sendFile(__dirname+'/client/index.html');
+//      res.sendFile(__dirname+'/dist/webrtc/index.html');
 //     });

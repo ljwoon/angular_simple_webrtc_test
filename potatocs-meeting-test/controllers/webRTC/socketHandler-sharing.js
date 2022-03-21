@@ -30,7 +30,7 @@ module.exports = function (wsServer, socket, app) {
 
   
 
-  const socketWebRTC = wsServer.of('/socketWebRTC');
+  const socketWebRTC = wsServer.of('/socketWebRTCTest');
   // 룸에 참가.
   socket.on('userInfo', (data) => {
     console.log('[data]', data)
@@ -116,9 +116,9 @@ module.exports = function (wsServer, socket, app) {
   socket.on("disconnecting", () => {
     let userSession = userRegister.getById(socket.id);
     if (userSession != undefined) {
-      if (userSession.room_name != undefined) {
+      if (userSession.roomName != undefined) {
         meeting_disconnect = "disconnect during a meeting";
-        room_name = userSession.room_name;
+        room_name = userSession.roomName;
         participant_name = socket.participant_name;
       }
     }
@@ -146,7 +146,7 @@ let rooms = {};
 function renegotiation(socket) {
   let userSession = userRegister.getById(socket.id);
 
-  var room = rooms[userSession.room_name];
+  var room = rooms[userSession.roomName];
 
   var usersInRoom = room.participants;
 
@@ -264,7 +264,7 @@ function leaveRoom(socket, data, callback) {
     return;
   }
 
-  var room = rooms[userSession.room_name];
+  var room = rooms[userSession.roomName];
 
   if (!room) {
     return;
@@ -297,9 +297,9 @@ function leaveRoom(socket, data, callback) {
   // Release pipeline and delete room when room is empty
   if (Object.keys(room.participants).length == 0) {
     room.pipeline.release();
-    delete rooms[userSession.room_name];
+    delete rooms[userSession.roomName];
   }
-  delete userSession.room_name;
+  delete userSession.roomName;
 }
 
 // 룸 참가

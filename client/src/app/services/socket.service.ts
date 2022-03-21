@@ -13,7 +13,7 @@ export class SocketService {
 
   constructor() {
     console.log(this.url)
-    this._socket = io(this.url+'/socketWebRTC', { transports: ['websocket'], path:'/socketWebRTC' });
+    this._socket = io(this.url+'/socketWebRTCTest', { transports: ['websocket'], path:'/socketWebRTCTest' });
 		// console.log(this._socket);
   }
 
